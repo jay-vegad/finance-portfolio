@@ -8,15 +8,12 @@ import PortfolioSummary from '@/components/PortfolioSummary';
 import PortfolioDistribution from '@/components/PortfolioDistribution';
 import MarketTrends from '@/components/MarketTrends';
 import TopMovers from '@/components/TopMovers';
+import { formatCurrency, formatPercentage } from '@/utils/format';
+import { Stock } from '@/types';
 
-interface Stock {
-  id: string;
-  symbol: string;
-  name: string;
-  price: number;
-  change: number;
-  shares: number;
-  sector: string;
+interface ChartData {
+  labels: string[];
+  prices: number[];
 }
 
 // Sample portfolio data
@@ -36,10 +33,37 @@ const distributionData = {
 };
 
 // Sample stocks data
-const INITIAL_STOCKS = [
-  { id: '1', symbol: 'RELIANCE', name: 'Reliance Industries', price: 2456.75, change: 2.34, shares: 100, sector: 'Energy' },
-  { id: '2', symbol: 'TCS', name: 'Tata Consultancy Services', price: 3567.80, change: -1.23, shares: 50, sector: 'IT' },
-  { id: '3', symbol: 'HDFCBANK', name: 'HDFC Bank', price: 1678.90, change: 0.45, shares: 150, sector: 'Banking' }
+const INITIAL_STOCKS: Stock[] = [
+  {
+    id: '1',
+    symbol: 'HDFC',
+    name: 'HDFC Bank Ltd',
+    price: 1550.75,
+    change: 2.5,
+    shares: 100,
+    sector: 'Banking',
+    type: 'Large Cap'
+  },
+  { 
+    id: '2', 
+    symbol: 'TCS', 
+    name: 'Tata Consultancy Services', 
+    price: 3567.80, 
+    change: -1.23, 
+    shares: 50, 
+    sector: 'IT',
+    type: 'Large Cap'
+  },
+  { 
+    id: '3', 
+    symbol: 'RELIANCE', 
+    name: 'Reliance Industries', 
+    price: 2456.75, 
+    change: 2.34, 
+    shares: 100, 
+    sector: 'Energy',
+    type: 'Large Cap'
+  }
 ];
 
 // Sample market trends data
@@ -50,62 +74,38 @@ const marketTrendsData = {
 
 // Sample top movers data
 const topMoversData = {
-  labels: ['9:15', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '15:30'],
+  labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
   stocks: [
     {
+      name: 'HDFC Bank',
+      data: [2.5, 3.1, -1.2, 4.5, 2.8]
+    },
+    {
+      name: 'Reliance',
+      data: [1.8, -2.2, 3.4, 1.9, 3.2]
+    },
+    {
       name: 'TCS',
-      data: [3550.75, 3555.60, 3558.30, 3553.45, 3556.70, 3559.80, 3557.90, 3567.80]
-    },
-    {
-      name: 'INFY',
-      data: [1450.75, 1452.60, 1455.30, 1453.45, 1454.70, 1455.80, 1456.90, 1456.60]
-    },
-    {
-      name: 'WIPRO',
-      data: [450.75, 452.60, 453.30, 454.45, 455.70, 456.80, 456.90, 456.70]
+      data: [-1.2, 2.8, 1.5, -0.8, 2.1]
     }
   ]
-};
-
-// Sample chart data generator
-const generateChartData = (symbol: string) => {
-  const today = new Date();
-  const labels = Array.from({ length: 30 }, (_, i) => {
-    const date = new Date(today);
-    date.setDate(date.getDate() - (29 - i));
-    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-  });
-
-  // Generate random prices with a trend based on the stock's current change
-  const basePrice = INITIAL_STOCKS.find(s => s.symbol === symbol)?.price || 100;
-  const trend = INITIAL_STOCKS.find(s => s.symbol === symbol)?.change || 0;
-  
-  const prices = labels.map((_, i) => {
-    const randomChange = (Math.random() - 0.5) * 20;
-    const trendChange = (trend / 100) * basePrice * (i / labels.length);
-    return basePrice + randomChange + trendChange;
-  });
-
-  return { labels, prices };
 };
 
 export default function Home() {
   const [stocks, setStocks] = useState<Stock[]>(INITIAL_STOCKS);
   const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
-  const [chartData, setChartData] = useState({ labels: [], prices: [] });
+  const [chartData, setChartData] = useState<ChartData>({ labels: [], prices: [] });
 
-  const handleAdd = (newStock: Stock) => {
-    setStocks([...stocks, newStock]);
+  const handleAdd = (stock: Stock) => {
+    setStocks([...stocks, { ...stock, type: stock.type || 'Large Cap' }]);
   };
 
-  const handleEdit = (updatedStock: Stock) => {
-    setStocks(stocks.map(stock => 
-      stock.id === updatedStock.id ? updatedStock : stock
-    ));
+  const handleEdit = (stock: Stock) => {
+    setStocks(stocks.map(s => s.id === stock.id ? stock : s));
   };
 
   const handleDelete = (id: string) => {
-    setStocks(stocks.filter(stock => stock.id !== id));
+    setStocks(stocks.filter(s => s.id !== id));
     if (selectedStock?.id === id) {
       setSelectedStock(null);
     }
@@ -114,6 +114,46 @@ export default function Home() {
   const handleSelect = (stock: Stock) => {
     setSelectedStock(stock);
     setChartData(generateChartData(stock.symbol));
+  };
+
+  // Calculate portfolio summary data
+  const portfolioSummary = {
+    totalValue: stocks.reduce((total, stock) => total + (stock.price * stock.shares), 0),
+    dayChange: stocks.reduce((total, stock) => total + (stock.price * stock.shares * stock.change / 100), 0),
+    dayChangePercent: stocks.length ? (stocks.reduce((total, stock) => total + stock.change, 0) / stocks.length) : 0,
+    totalReturn: 547892.50,
+    totalReturnPercent: 27.4,
+    activeStocks: stocks.length
+  };
+
+  const distributionData = {
+    labels: ['IT', 'Banking', 'Energy', 'Healthcare', 'Consumer'],
+    values: stocks.reduce((acc, stock) => {
+      const sectorIndex = acc.findIndex(s => s.sector === stock.sector);
+      if (sectorIndex >= 0) {
+        acc[sectorIndex].value += stock.price * stock.shares;
+      }
+      return acc;
+    }, [] as { sector: string; value: number }[]).map(s => s.value)
+  };
+
+  const marketTrendsData = {
+    sectors: ['IT', 'Banking', 'Energy', 'Healthcare', 'Consumer'],
+    growth: [12.5, 8.3, 15.2, -3.1, 5.7]
+  };
+
+  const generateChartData = (symbol: string): ChartData => {
+    const labels = Array.from({ length: 30 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (29 - i));
+      return date.toLocaleDateString();
+    });
+
+    const prices = Array.from({ length: 30 }, () => 
+      Math.random() * 1000 + 500
+    );
+
+    return { labels, prices };
   };
 
   return (
@@ -126,7 +166,7 @@ export default function Home() {
         {/* Top Row - Summary Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
-            <PortfolioSummary data={portfolioData} />
+            <PortfolioSummary {...portfolioSummary} />
           </div>
           <div>
             <motion.div
@@ -136,16 +176,16 @@ export default function Home() {
               <h2 className="text-xl font-semibold mb-4">Quick Stats</h2>
               <div className="space-y-4">
                 <div className="flex justify-between">
-                  <span>Day's Gain</span>
-                  <span className="text-green-500">+₹45,678.25</span>
+                  <span>Day&apos;s Gain</span>
+                  <span className="text-green-500">+₹{formatCurrency(portfolioSummary.dayChange)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Total P&L</span>
-                  <span className="text-green-500">+₹5,47,892.50</span>
+                  <span className="text-green-500">+₹{formatCurrency(portfolioSummary.totalReturn)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Active Stocks</span>
-                  <span>15</span>
+                  <span>{portfolioSummary.activeStocks}</span>
                 </div>
               </div>
             </motion.div>
@@ -154,17 +194,30 @@ export default function Home() {
 
         {/* Middle Row - Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <PortfolioDistribution data={distributionData} />
-          <MarketTrends data={marketTrendsData} />
+          <PortfolioDistribution 
+            labels={distributionData.labels}
+            values={distributionData.values}
+          />
+          <MarketTrends 
+            sectors={marketTrendsData.sectors}
+            growth={marketTrendsData.growth}
+          />
         </div>
 
         {/* Stock Performance Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <StockChart data={chartData} symbol={selectedStock?.symbol || ''} />
-          <TopMovers data={topMoversData} />
+          {selectedStock && (
+            <StockChart 
+              data={chartData}
+              symbol={selectedStock.symbol}
+            />
+          )}
+          <TopMovers 
+            labels={topMoversData.labels}
+            stocks={topMoversData.stocks}
+          />
         </div>
 
-        {/* Bottom Row - Stock List */}
         <StockList
           stocks={stocks}
           onAdd={handleAdd}

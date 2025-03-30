@@ -25,7 +25,15 @@ ChartJS.register(
   Filler
 );
 
-export default function TopMovers() {
+interface TopMoversProps {
+  labels: string[];
+  stocks: {
+    name: string;
+    data: number[];
+  }[];
+}
+
+export default function TopMovers({ labels, stocks }: TopMoversProps) {
   const data = {
     labels: ['9:30', '10:30', '11:30', '12:30', '13:30', '14:30', '15:30'],
     datasets: [
@@ -84,6 +92,28 @@ export default function TopMovers() {
       <h2 className="text-xl font-semibold mb-4">Top Movers Today</h2>
       <div className="h-[400px]">
         <Line data={data} options={options} />
+      </div>
+      <div className="mt-4">
+        <h3 className="text-lg font-semibold mb-4">Top Movers</h3>
+        <div className="space-y-4">
+          {stocks.map((stock) => (
+            <div 
+              key={stock.name}
+              className="flex justify-between items-center"
+            >
+              <div>
+                <p className="font-medium">{stock.name}</p>
+                <p className="text-sm text-gray-500">
+                  {stock.data[stock.data.length - 1].toFixed(2)}%
+                </p>
+              </div>
+              <div className={`text-right ${stock.data[stock.data.length - 1] >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {stock.data[stock.data.length - 1] > 0 ? '+' : ''}
+                {stock.data[stock.data.length - 1].toFixed(2)}%
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </motion.div>
   );

@@ -1,54 +1,49 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { formatCurrency, formatPercentage } from '../utils/format';
+import { formatCurrency, formatPercentage } from '@/utils/format';
 
-export default function PortfolioSummary() {
-  const summaryData = {
-    totalValue: 2547892.50,
-    todayChange: 45678.25,
-    todayChangePercent: 1.82,
-    totalReturn: 547892.50,
-    totalReturnPercent: 27.4
-  };
+interface PortfolioSummaryProps {
+  totalValue: number;
+  dayChange: number;
+  dayChangePercent: number;
+  totalReturn: number;
+  totalReturnPercent: number;
+  activeStocks: number;
+}
 
+export default function PortfolioSummary({
+  totalValue,
+  dayChange,
+  dayChangePercent,
+  totalReturn,
+  totalReturnPercent,
+  activeStocks
+}: PortfolioSummaryProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-gray-800 rounded-xl p-6 shadow-xl"
-    >
-      <h2 className="text-xl font-semibold mb-6">Portfolio Summary</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+      <h2 className="text-xl font-semibold mb-4">Portfolio Summary</h2>
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+        Here&apos;s how your portfolio is performing
+      </p>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
         <div>
-          <p className="text-gray-400 text-sm">Total Value</p>
-          <p className="text-2xl font-semibold mt-1">
-            {formatCurrency(summaryData.totalValue)}
+          <p className="text-sm text-gray-500">Total Value</p>
+          <p className="text-2xl font-semibold">₹{totalValue.toLocaleString()}</p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-500">Day&apos;s Change</p>
+          <p className={`text-2xl font-semibold ${dayChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            {dayChange >= 0 ? '+' : ''}₹{Math.abs(dayChange).toLocaleString()} ({dayChangePercent.toFixed(2)}%)
           </p>
         </div>
         <div>
-          <p className="text-gray-400 text-sm">Today's Change</p>
-          <div className="flex items-baseline mt-1">
-            <p className="text-2xl font-semibold text-green-500">
-              {formatCurrency(summaryData.todayChange)}
-            </p>
-            <p className="ml-2 text-green-500">
-              ({formatPercentage(summaryData.todayChangePercent)})
-            </p>
-          </div>
-        </div>
-        <div>
-          <p className="text-gray-400 text-sm">Total Return</p>
-          <div className="flex items-baseline mt-1">
-            <p className="text-2xl font-semibold text-green-500">
-              {formatCurrency(summaryData.totalReturn)}
-            </p>
-            <p className="ml-2 text-green-500">
-              ({formatPercentage(summaryData.totalReturnPercent)})
-            </p>
-          </div>
+          <p className="text-sm text-gray-500">Total Return</p>
+          <p className={`text-2xl font-semibold ${totalReturn >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            {totalReturn >= 0 ? '+' : ''}₹{Math.abs(totalReturn).toLocaleString()} ({totalReturnPercent.toFixed(2)}%)
+          </p>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

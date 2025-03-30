@@ -1,34 +1,37 @@
 'use client';
 
 import { Doughnut } from 'react-chartjs-2';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Chart as ChartJS, TooltipItem } from 'chart.js';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '../utils/format';
+import { ChartContext } from '@/types';
 
-ChartJS.register(ArcElement, Tooltip, Legend);
-
-interface DistributionData {
+interface PortfolioDistributionProps {
   labels: string[];
   values: number[];
 }
 
-export default function PortfolioDistribution({ data }: { data: DistributionData }) {
-  const chartData = {
-    labels: data.labels,
-    datasets: [
-      {
-        data: data.values,
-        backgroundColor: [
-          'rgba(59, 130, 246, 0.8)',
-          'rgba(34, 197, 94, 0.8)',
-          'rgba(239, 68, 68, 0.8)',
-          'rgba(168, 85, 247, 0.8)',
-          'rgba(234, 179, 8, 0.8)',
-        ],
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        borderWidth: 1,
-      },
-    ],
+export default function PortfolioDistribution({ labels, values }: PortfolioDistributionProps) {
+  const data = {
+    labels,
+    datasets: [{
+      data: values,
+      backgroundColor: [
+        'rgba(59, 130, 246, 0.8)', // blue
+        'rgba(16, 185, 129, 0.8)', // green
+        'rgba(245, 158, 11, 0.8)', // yellow
+        'rgba(239, 68, 68, 0.8)',  // red
+        'rgba(167, 139, 250, 0.8)' // purple
+      ],
+      borderColor: [
+        'rgba(59, 130, 246, 1)',
+        'rgba(16, 185, 129, 1)',
+        'rgba(245, 158, 11, 1)',
+        'rgba(239, 68, 68, 1)',
+        'rgba(167, 139, 250, 1)'
+      ],
+      borderWidth: 1
+    }]
   };
 
   const options = {
@@ -36,30 +39,32 @@ export default function PortfolioDistribution({ data }: { data: DistributionData
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'right' as const,
+        position: 'bottom' as const
       },
       tooltip: {
         callbacks: {
-          label: (context: any) => {
-            const value = context.raw;
-            const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
+          label: function(tooltipItem: TooltipItem<"doughnut">) {
+            const dataset = tooltipItem.dataset;
+            const total = dataset.data.reduce((acc: number, data: number) => acc + data, 0);
+            const value = dataset.data[tooltipItem.dataIndex] as number;
             const percentage = ((value / total) * 100).toFixed(1);
-            return `${context.label}: ${formatCurrency(value)} (${percentage}%)`;
-          },
-        },
-      },
-    },
+            return `${tooltipItem.label}: ${percentage}%`;
+          }
+        }
+      }
+    }
   };
 
   return (
-    <motion.div
+    <motion.div 
+      className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gray-800 rounded-xl p-6 shadow-xl"
+      transition={{ duration: 0.5 }}
     >
       <h2 className="text-xl font-semibold mb-4">Portfolio Distribution</h2>
       <div className="h-[400px]">
-        <Doughnut data={chartData} options={options} />
+        <Doughnut data={data} options={options} />
       </div>
     </motion.div>
   );

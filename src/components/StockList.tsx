@@ -1,29 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency, formatPercentage } from '../utils/format';
 import { PlusIcon, PencilIcon, TrashIcon, XMarkIcon, TableCellsIcon } from '@heroicons/react/24/outline';
-
-interface Stock {
-  id: string;
-  symbol: string;
-  name: string;
-  price: number;
-  change: number;
-  shares: number;
-  sector: string;
-  type: string;
-}
+import { Stock } from '@/types';
 
 interface StockListProps {
-  initialStocks?: Stock[];
-  onStockUpdate?: (stocks: Stock[]) => void;
+  stocks: Stock[];
+  selectedStock: Stock | null;
   onAdd: (stock: Stock) => void;
   onEdit: (stock: Stock) => void;
   onDelete: (id: string) => void;
   onSelect: (stock: Stock) => void;
-  selectedStock: Stock | null;
 }
 
 const SECTORS = [
@@ -80,102 +69,56 @@ const EMPTY_STOCK: Stock = {
   type: 'Common Stock'
 };
 
-export default function StockList({ initialStocks, onStockUpdate, onAdd, onEdit, onDelete, onSelect, selectedStock }: StockListProps) {
-  const [stocks, setStocks] = useState<Stock[]>(initialStocks || INITIAL_STOCKS);
-  const [currentStock, setCurrentStock] = useState<Stock>(EMPTY_STOCK);
+export default function StockList({
+  stocks,
+  selectedStock,
+  onAdd,
+  onEdit,
+  onDelete,
+  onSelect
+}: StockListProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [selectedStockId, setSelectedStockId] = useState<string>('');
+  const [editingStock, setEditingStock] = useState<Stock | null>(null);
+  const [newStock, setNewStock] = useState<Partial<Stock>>({
+    type: 'Large Cap',
+    sector: 'Banking'
+  });
 
-  useEffect(() => {
-    // Update parent component if callback is provided
-    if (onStockUpdate) {
-      onStockUpdate(stocks);
-    }
-  }, [stocks, onStockUpdate]);
-
-  // Handle selecting a stock when clicked
-  const handleSelect = (id: string) => {
-    setSelectedStockId(id === selectedStockId ? '' : id);
+  const handleSelect = (stock: Stock) => {
+    onSelect(stock);
   };
 
-  // Handle adding a new stock
-  const handleAdd = () => {
-    setCurrentStock({ ...EMPTY_STOCK, id: Date.now().toString() });
-    setIsEditing(false);
+  const handleAddClick = () => {
+    setEditingStock(null);
+    setNewStock({
+      type: 'Large Cap',
+      sector: 'Banking',
+      shares: 0,
+      price: 0,
+      change: 0
+    });
     setIsModalOpen(true);
   };
 
-  // Handle editing an existing stock
-  const handleEdit = (stock: Stock) => {
-    setCurrentStock({...stock});
-    setIsEditing(true);
+  const handleEditClick = (stock: Stock) => {
+    setEditingStock(stock);
+    setNewStock(stock);
     setIsModalOpen(true);
   };
 
-  // Handle deleting a stock
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this stock?')) {
-      setStocks(prevStocks => prevStocks.filter(stock => stock.id !== id));
-      if (selectedStockId === id) {
-        setSelectedStockId('');
-      }
-    }
-  };
-
-  // Auto-fill stock name when symbol is selected
-  const handleSymbolChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const symbol = e.target.value;
-    const selectedStock = INDIAN_STOCKS.find(stock => stock.symbol === symbol);
-    
-    setCurrentStock(prev => ({
-      ...prev,
-      symbol,
-      name: selectedStock ? selectedStock.name : prev.name
-    }));
-  };
-
-  // Handle form submission for adding/editing stocks
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (isEditing) {
-      // Update existing stock
-      setStocks(prevStocks => 
-        prevStocks.map(stock => 
-          stock.id === currentStock.id ? currentStock : stock
-        )
-      );
+    if (editingStock) {
+      onEdit({ ...editingStock, ...newStock } as Stock);
     } else {
-      // Add new stock
-      setStocks(prevStocks => [...prevStocks, currentStock]);
+      const stock = {
+        ...newStock,
+        id: Math.random().toString(36).substr(2, 9)
+      } as Stock;
+      onAdd(stock);
     }
-
     setIsModalOpen(false);
-    setCurrentStock(EMPTY_STOCK);
-  };
-
-  // Handle input changes in the form
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    
-    // Special handling for symbol to auto-populate name
-    if (name === 'symbol') {
-      handleSymbolChange(e as React.ChangeEvent<HTMLSelectElement>);
-      return;
-    }
-    
-    setCurrentStock(prev => ({
-      ...prev,
-      [name]: ['price', 'change', 'shares'].includes(name) ? Number(value) : value
-    }));
-  };
-
-  // Handle canceling the form
-  const handleCancel = () => {
-    setIsModalOpen(false);
-    setCurrentStock(EMPTY_STOCK);
-    setIsEditing(false);
+    setNewStock({});
   };
 
   return (
@@ -195,7 +138,7 @@ export default function StockList({ initialStocks, onStockUpdate, onAdd, onEdit,
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={handleAdd}
+          onClick={handleAddClick}
           className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
         >
           <PlusIcon className="w-5 h-5" />
@@ -226,7 +169,7 @@ export default function StockList({ initialStocks, onStockUpdate, onAdd, onEdit,
                 className={`border-b border-gray-700 cursor-pointer hover:bg-gray-700/50 ${
                   selectedStock?.id === stock.id ? 'bg-gray-700/25' : ''
                 }`}
-                onClick={() => onSelect(stock)}
+                onClick={() => handleSelect(stock)}
               >
                 <td className="py-3 px-4 text-sm font-medium text-gray-900 dark:text-white">{stock.symbol}</td>
                 <td className="py-3 px-4 text-sm text-gray-500 dark:text-gray-400">{stock.name}</td>
@@ -246,7 +189,7 @@ export default function StockList({ initialStocks, onStockUpdate, onAdd, onEdit,
                       whileTap={{ scale: 0.9 }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onEdit(stock);
+                        handleEditClick(stock);
                       }}
                       className="p-1 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
                     >
@@ -289,10 +232,13 @@ export default function StockList({ initialStocks, onStockUpdate, onAdd, onEdit,
             >
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {isEditing ? 'Edit Stock' : 'Add New Stock'}
+                  {editingStock ? 'Edit Stock' : 'Add New Stock'}
                 </h3>
                 <button
-                  onClick={handleCancel}
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setNewStock({});
+                  }}
                   className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 >
                   <XMarkIcon className="w-6 h-6" />
@@ -305,12 +251,11 @@ export default function StockList({ initialStocks, onStockUpdate, onAdd, onEdit,
                     Symbol
                   </label>
                   <select
-                    value={currentStock.symbol}
-                    onChange={handleInputChange}
+                    value={newStock.symbol || ''}
+                    onChange={(e) => setNewStock(prev => ({ ...prev, symbol: e.target.value }))}
                     name="symbol"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     required
-                    disabled={isEditing} // Disable changing symbol when editing
                   >
                     <option value="">Select a stock</option>
                     {INDIAN_STOCKS.map((stock) => (
@@ -327,8 +272,8 @@ export default function StockList({ initialStocks, onStockUpdate, onAdd, onEdit,
                   </label>
                   <input
                     type="text"
-                    value={currentStock.name}
-                    onChange={handleInputChange}
+                    value={newStock.name || ''}
+                    onChange={(e) => setNewStock(prev => ({ ...prev, name: e.target.value }))}
                     name="name"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     required
@@ -340,8 +285,8 @@ export default function StockList({ initialStocks, onStockUpdate, onAdd, onEdit,
                     Sector
                   </label>
                   <select
-                    value={currentStock.sector}
-                    onChange={handleInputChange}
+                    value={newStock.sector || ''}
+                    onChange={(e) => setNewStock(prev => ({ ...prev, sector: e.target.value }))}
                     name="sector"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     required
@@ -360,8 +305,8 @@ export default function StockList({ initialStocks, onStockUpdate, onAdd, onEdit,
                     Type
                   </label>
                   <select
-                    value={currentStock.type}
-                    onChange={handleInputChange}
+                    value={newStock.type || ''}
+                    onChange={(e) => setNewStock(prev => ({ ...prev, type: e.target.value }))}
                     name="type"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     required
@@ -380,8 +325,8 @@ export default function StockList({ initialStocks, onStockUpdate, onAdd, onEdit,
                   </label>
                   <input
                     type="number"
-                    value={currentStock.price}
-                    onChange={handleInputChange}
+                    value={newStock.price || ''}
+                    onChange={(e) => setNewStock(prev => ({ ...prev, price: Number(e.target.value) }))}
                     name="price"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     required
@@ -396,8 +341,8 @@ export default function StockList({ initialStocks, onStockUpdate, onAdd, onEdit,
                   </label>
                   <input
                     type="number"
-                    value={currentStock.change}
-                    onChange={handleInputChange}
+                    value={newStock.change || ''}
+                    onChange={(e) => setNewStock(prev => ({ ...prev, change: Number(e.target.value) }))}
                     name="change"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     required
@@ -411,8 +356,8 @@ export default function StockList({ initialStocks, onStockUpdate, onAdd, onEdit,
                   </label>
                   <input
                     type="number"
-                    value={currentStock.shares}
-                    onChange={handleInputChange}
+                    value={newStock.shares || ''}
+                    onChange={(e) => setNewStock(prev => ({ ...prev, shares: Number(e.target.value) }))}
                     name="shares"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     required
@@ -422,17 +367,10 @@ export default function StockList({ initialStocks, onStockUpdate, onAdd, onEdit,
 
                 <div className="flex justify-end space-x-3 mt-6">
                   <button
-                    type="button"
-                    onClick={handleCancel}
-                    className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
                     type="submit"
                     className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
                   >
-                    {isEditing ? 'Save Changes' : 'Add Stock'}
+                    {editingStock ? 'Save Changes' : 'Add Stock'}
                   </button>
                 </div>
               </form>

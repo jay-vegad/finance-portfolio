@@ -1,39 +1,15 @@
 'use client';
 
 import { Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  ChartOptions,
-  Filler,
-} from 'chart.js';
+import { Chart as ChartJS } from 'chart.js/auto';
+import { ChartData } from '@/types';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { formatCurrency } from '../utils/format';
 import { ChartBarIcon } from '@heroicons/react/24/outline';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
-
 interface StockChartProps {
-  data: {
-    labels: string[];
-    prices: number[];
-  };
+  data: ChartData;
   symbol: string;
 }
 
@@ -112,6 +88,12 @@ const generateMockPrices = (range: TimeRange): number[] => {
   return prices;
 };
 
+interface TooltipContext {
+  parsed: {
+    y: number;
+  };
+}
+
 export default function StockChart({ data, symbol }: StockChartProps) {
   const [timeRange, setTimeRange] = useState<TimeRange>('1M');
   const [chartData, setChartData] = useState({
@@ -138,53 +120,13 @@ export default function StockChart({ data, symbol }: StockChartProps) {
     ],
   };
 
-  const options: ChartOptions<'line'> = {
+  const options = {
     responsive: true,
-    maintainAspectRatio: false,
-    interaction: {
-      intersect: false,
-      mode: 'index',
-    },
     plugins: {
       legend: {
-        display: false,
-      },
-      tooltip: {
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        titleColor: '#fff',
-        bodyColor: '#fff',
-        padding: 12,
-        displayColors: false,
-        callbacks: {
-          label: (context: any) => {
-            const value = context.raw;
-            return `Price: ${formatCurrency(Number(value))}`;
-          },
-        },
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: false,
-        grid: {
-          color: 'rgba(156, 163, 175, 0.1)',
-        },
-        ticks: {
-          color: 'rgb(156, 163, 175)',
-          callback: (value) => formatCurrency(Number(value)),
-        },
-      },
-      x: {
-        grid: {
-          display: false,
-        },
-        ticks: {
-          color: 'rgb(156, 163, 175)',
-          maxRotation: 45,
-          minRotation: 45,
-        },
-      },
-    },
+        position: 'top' as const
+      }
+    }
   };
 
   return (
@@ -227,7 +169,7 @@ export default function StockChart({ data, symbol }: StockChartProps) {
       </div>
       <div className="h-[600px] w-full overflow-x-auto bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
         <div className="min-w-full h-full">
-          <Line options={options} data={chartConfig} />
+          <Line data={chartConfig} options={options} />
         </div>
       </div>
     </motion.div>
