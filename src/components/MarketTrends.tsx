@@ -9,10 +9,9 @@ import {
   Title,
   Tooltip,
   Legend,
-  ChartData
+  TooltipItem
 } from 'chart.js';
 import { motion } from 'framer-motion';
-import { formatCurrency } from '../utils/format';
 
 // Register Chart.js components
 ChartJS.register(
@@ -30,7 +29,7 @@ interface MarketTrendsProps {
 }
 
 export default function MarketTrends({ sectors, growth }: MarketTrendsProps) {
-  const data: ChartData<'bar'> = {
+  const data = {
     labels: sectors,
     datasets: [{
       label: 'Sector Growth (%)',
@@ -43,54 +42,6 @@ export default function MarketTrends({ sectors, growth }: MarketTrendsProps) {
     }]
   };
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top' as const,
-        labels: {
-          padding: 20,
-          usePointStyle: true,
-          pointStyle: 'circle'
-        }
-      },
-      title: {
-        display: true,
-        text: 'Market Trends by Sector',
-        padding: {
-          top: 10,
-          bottom: 20
-        }
-      },
-      tooltip: {
-        callbacks: {
-          label: (context: any) => `Growth: ${context.parsed.y.toFixed(1)}%`
-        }
-      }
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        grid: {
-          drawBorder: false
-        },
-        ticks: {
-          callback: (value: number) => `${value}%`
-        }
-      },
-      x: {
-        grid: {
-          display: false
-        }
-      }
-    },
-    animation: {
-      duration: 1000,
-      easing: 'easeInOutQuart'
-    }
-  };
-
   return (
     <motion.div 
       className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg"
@@ -100,8 +51,29 @@ export default function MarketTrends({ sectors, growth }: MarketTrendsProps) {
     >
       <h2 className="text-xl font-semibold mb-4">Market Trends</h2>
       <div className="h-[400px]">
-        <Bar data={data} options={options} />
+        <Bar 
+          data={data} 
+          options={{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'top' as const
+              },
+              title: {
+                display: true,
+                text: 'Market Trends by Sector'
+              },
+              tooltip: {
+                callbacks: {
+                  label: (context: TooltipItem<"bar">) => 
+                    `Growth: ${context.parsed.y.toFixed(1)}%`
+                }
+              }
+            }
+          }}
+        />
       </div>
     </motion.div>
   );
-} 
+}

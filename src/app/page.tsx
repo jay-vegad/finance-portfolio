@@ -8,7 +8,7 @@ import PortfolioSummary from '@/components/PortfolioSummary';
 import PortfolioDistribution from '@/components/PortfolioDistribution';
 import MarketTrends from '@/components/MarketTrends';
 import TopMovers from '@/components/TopMovers';
-import { formatCurrency, formatPercentage } from '@/utils/format';
+import { formatCurrency } from '@/utils/format'
 import { Stock } from '@/types';
 
 interface ChartData {
@@ -68,16 +68,17 @@ const INITIAL_STOCKS: Stock[] = [
 
 // Sample market trends data
 const marketTrendsData = {
-  sectors: ['Banking', 'IT', 'Energy', 'Healthcare', 'Consumer'],
-  growth: INITIAL_STOCKS.reduce((acc: number[], stock) => {
-    const sectorIndex = acc.findIndex(s => s === stock.sector);
-    if (sectorIndex >= 0) {
-      acc[sectorIndex] += stock.change;
+  sectors: INITIAL_STOCKS.map(stock => stock.sector)
+    .filter((value, index, self) => self.indexOf(value) === index),
+  growth: INITIAL_STOCKS.reduce((acc: { sector: string; change: number }[], stock) => {
+    const existingIndex = acc.findIndex(item => item.sector === stock.sector);
+    if (existingIndex >= 0) {
+      acc[existingIndex].change += stock.change;
     } else {
-      acc.push(stock.change);
+      acc.push({ sector: stock.sector, change: stock.change });
     }
     return acc;
-  }, []).map(change => parseFloat(change.toFixed(2)))
+  }, []).map(item => item.change)
 };
 
 // Sample top movers data
@@ -134,17 +135,19 @@ export default function Home() {
     activeStocks: stocks.length
   };
 
+  // Calculate distribution data
   const distributionData = {
-    labels: stocks.map(stock => stock.sector).filter((value, index, self) => self.indexOf(value) === index),
-    values: stocks.reduce((acc: number[], stock) => {
-      const sectorIndex = acc.findIndex(s => s === stock.sector);
-      if (sectorIndex >= 0) {
-        acc[sectorIndex] += stock.price * stock.shares;
+    labels: stocks.map(stock => stock.sector)
+      .filter((value, index, self) => self.indexOf(value) === index),
+    values: stocks.reduce((acc: { sector: string; value: number }[], stock) => {
+      const existingIndex = acc.findIndex(item => item.sector === stock.sector);
+      if (existingIndex >= 0) {
+        acc[existingIndex].value += stock.price * stock.shares;
       } else {
-        acc.push(stock.price * stock.shares);
+        acc.push({ sector: stock.sector, value: stock.price * stock.shares });
       }
       return acc;
-    }, [])
+    }, []).map(item => item.value)
   };
 
   const generateChartData = (symbol: string): ChartData => {

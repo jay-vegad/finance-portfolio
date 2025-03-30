@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { formatCurrency } from '../utils/format';
 import { ChartBarIcon } from '@heroicons/react/24/outline';
+import { TooltipItem } from 'chart.js';
 
 interface StockChartProps {
   data: ChartData;
@@ -125,6 +126,12 @@ export default function StockChart({ data, symbol }: StockChartProps) {
     plugins: {
       legend: {
         position: 'top' as const
+      },
+      tooltip: {
+        callbacks: {
+          label: (context: TooltipItem<"line">) => 
+            `Price: ₹${context.parsed.y.toFixed(2)}`
+        }
       }
     }
   };

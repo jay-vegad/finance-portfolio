@@ -200,7 +200,9 @@ export default function StockList({
                       whileTap={{ scale: 0.9 }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onDelete(stock.id);
+                        if (window.confirm("Are you sure you want to delete this stock?")) {
+                          onDelete(stock.id);
+                        }
                       }}
                       className="p-1 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400"
                     >

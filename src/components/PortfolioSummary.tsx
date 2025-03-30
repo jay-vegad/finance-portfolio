@@ -23,7 +23,7 @@ export default function PortfolioSummary({
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
       <h2 className="text-xl font-semibold mb-4">Portfolio Summary</h2>
-      <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+      <p className="text-sm text-gray-600 dark:text-gray-400">
         Here&apos;s how your portfolio is performing
       </p>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
