@@ -1,10 +1,20 @@
 'use client';
 
 import { Doughnut } from 'react-chartjs-2';
-import { Chart as ChartJS, TooltipItem } from 'chart.js';
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  TooltipItem,
+  ChartData
+} from 'chart.js';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '../utils/format';
 import { ChartContext } from '@/types';
+
+// Register the required elements
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 interface PortfolioDistributionProps {
   labels: string[];
@@ -12,7 +22,7 @@ interface PortfolioDistributionProps {
 }
 
 export default function PortfolioDistribution({ labels, values }: PortfolioDistributionProps) {
-  const data = {
+  const data: ChartData<'doughnut'> = {
     labels,
     datasets: [{
       data: values,
@@ -30,7 +40,8 @@ export default function PortfolioDistribution({ labels, values }: PortfolioDistr
         'rgba(239, 68, 68, 1)',
         'rgba(167, 139, 250, 1)'
       ],
-      borderWidth: 1
+      borderWidth: 1,
+      hoverOffset: 4
     }]
   };
 
@@ -39,7 +50,12 @@ export default function PortfolioDistribution({ labels, values }: PortfolioDistr
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'bottom' as const
+        position: 'bottom' as const,
+        labels: {
+          padding: 20,
+          usePointStyle: true,
+          pointStyle: 'circle'
+        }
       },
       tooltip: {
         callbacks: {
@@ -52,6 +68,10 @@ export default function PortfolioDistribution({ labels, values }: PortfolioDistr
           }
         }
       }
+    },
+    animation: {
+      animateScale: true,
+      animateRotate: true
     }
   };
 
@@ -63,7 +83,7 @@ export default function PortfolioDistribution({ labels, values }: PortfolioDistr
       transition={{ duration: 0.5 }}
     >
       <h2 className="text-xl font-semibold mb-4">Portfolio Distribution</h2>
-      <div className="h-[400px]">
+      <div className="h-[400px] flex items-center justify-center">
         <Doughnut data={data} options={options} />
       </div>
     </motion.div>

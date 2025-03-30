@@ -68,8 +68,16 @@ const INITIAL_STOCKS: Stock[] = [
 
 // Sample market trends data
 const marketTrendsData = {
-  sectors: ['IT', 'Banking', 'Healthcare', 'Energy', 'Consumer'],
-  growth: [12.5, 8.3, 15.2, -3.1, 5.7]
+  sectors: ['Banking', 'IT', 'Energy', 'Healthcare', 'Consumer'],
+  growth: INITIAL_STOCKS.reduce((acc: number[], stock) => {
+    const sectorIndex = acc.findIndex(s => s === stock.sector);
+    if (sectorIndex >= 0) {
+      acc[sectorIndex] += stock.change;
+    } else {
+      acc.push(stock.change);
+    }
+    return acc;
+  }, []).map(change => parseFloat(change.toFixed(2)))
 };
 
 // Sample top movers data
@@ -127,19 +135,16 @@ export default function Home() {
   };
 
   const distributionData = {
-    labels: ['IT', 'Banking', 'Energy', 'Healthcare', 'Consumer'],
-    values: stocks.reduce((acc, stock) => {
-      const sectorIndex = acc.findIndex(s => s.sector === stock.sector);
+    labels: stocks.map(stock => stock.sector).filter((value, index, self) => self.indexOf(value) === index),
+    values: stocks.reduce((acc: number[], stock) => {
+      const sectorIndex = acc.findIndex(s => s === stock.sector);
       if (sectorIndex >= 0) {
-        acc[sectorIndex].value += stock.price * stock.shares;
+        acc[sectorIndex] += stock.price * stock.shares;
+      } else {
+        acc.push(stock.price * stock.shares);
       }
       return acc;
-    }, [] as { sector: string; value: number }[]).map(s => s.value)
-  };
-
-  const marketTrendsData = {
-    sectors: ['IT', 'Banking', 'Energy', 'Healthcare', 'Consumer'],
-    growth: [12.5, 8.3, 15.2, -3.1, 5.7]
+    }, [])
   };
 
   const generateChartData = (symbol: string): ChartData => {
