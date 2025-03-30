@@ -1,92 +1,54 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { formatCurrency } from '../utils/format';
-import { ArrowUpIcon, ArrowDownIcon, ChartBarIcon, CurrencyDollarIcon, BanknotesIcon } from '@heroicons/react/24/outline';
+import { formatCurrency, formatPercentage } from '../utils/format';
 
-interface PortfolioSummaryProps {
-  totalValue: number;
-  dailyChange: number;
-  totalStocks: number;
-}
-
-export default function PortfolioSummary({ totalValue, dailyChange, totalStocks }: PortfolioSummaryProps) {
-  const changePercentage = (dailyChange / totalValue) * 100;
+export default function PortfolioSummary() {
+  const summaryData = {
+    totalValue: 2547892.50,
+    todayChange: 45678.25,
+    todayChangePercent: 1.82,
+    totalReturn: 547892.50,
+    totalReturnPercent: 27.4
+  };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Portfolio Value</h3>
-          <CurrencyDollarIcon className="w-5 h-5 text-blue-500" />
-        </div>
-        <div className="flex items-baseline">
-          <p className="text-2xl font-semibold text-gray-900 dark:text-white">{formatCurrency(totalValue)}</p>
-          <p className="ml-2 text-sm text-gray-500 dark:text-gray-400">INR</p>
-        </div>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Daily Change</h3>
-          {dailyChange >= 0 ? (
-            <ArrowUpIcon className="w-5 h-5 text-green-500" />
-          ) : (
-            <ArrowDownIcon className="w-5 h-5 text-red-500" />
-          )}
-        </div>
-        <div className="flex items-baseline">
-          <p className={`text-2xl font-semibold ${dailyChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-            {dailyChange >= 0 ? '+' : ''}{formatCurrency(dailyChange)}
-          </p>
-          <p className={`ml-2 text-sm ${dailyChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-            ({changePercentage >= 0 ? '+' : ''}{changePercentage.toFixed(2)}%)
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-gray-800 rounded-xl p-6 shadow-xl"
+    >
+      <h2 className="text-xl font-semibold mb-6">Portfolio Summary</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div>
+          <p className="text-gray-400 text-sm">Total Value</p>
+          <p className="text-2xl font-semibold mt-1">
+            {formatCurrency(summaryData.totalValue)}
           </p>
         </div>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Stocks</h3>
-          <ChartBarIcon className="w-5 h-5 text-blue-500" />
+        <div>
+          <p className="text-gray-400 text-sm">Today's Change</p>
+          <div className="flex items-baseline mt-1">
+            <p className="text-2xl font-semibold text-green-500">
+              {formatCurrency(summaryData.todayChange)}
+            </p>
+            <p className="ml-2 text-green-500">
+              ({formatPercentage(summaryData.todayChangePercent)})
+            </p>
+          </div>
         </div>
-        <div className="flex items-baseline">
-          <p className="text-2xl font-semibold text-gray-900 dark:text-white">{totalStocks}</p>
-          <p className="ml-2 text-sm text-gray-500 dark:text-gray-400">Holdings</p>
+        <div>
+          <p className="text-gray-400 text-sm">Total Return</p>
+          <div className="flex items-baseline mt-1">
+            <p className="text-2xl font-semibold text-green-500">
+              {formatCurrency(summaryData.totalReturn)}
+            </p>
+            <p className="ml-2 text-green-500">
+              ({formatPercentage(summaryData.totalReturnPercent)})
+            </p>
+          </div>
         </div>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Average Value</h3>
-          <BanknotesIcon className="w-5 h-5 text-blue-500" />
-        </div>
-        <div className="flex items-baseline">
-          <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-            {formatCurrency(totalValue / totalStocks)}
-          </p>
-          <p className="ml-2 text-sm text-gray-500 dark:text-gray-400">per Stock</p>
-        </div>
-      </motion.div>
-    </div>
+      </div>
+    </motion.div>
   );
 }

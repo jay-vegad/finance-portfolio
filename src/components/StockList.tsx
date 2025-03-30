@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, formatPercentage } from '../utils/format';
 import { PlusIcon, PencilIcon, TrashIcon, XMarkIcon, TableCellsIcon } from '@heroicons/react/24/outline';
 
 interface Stock {
+  id: string;
   symbol: string;
   name: string;
   price: number;
@@ -16,12 +17,13 @@ interface Stock {
 }
 
 interface StockListProps {
-  stocks: Stock[];
+  initialStocks?: Stock[];
+  onStockUpdate?: (stocks: Stock[]) => void;
   onAdd: (stock: Stock) => void;
   onEdit: (stock: Stock) => void;
-  onDelete: (symbol: string) => void;
-  onSelect: (symbol: string) => void;
-  selectedStock: string;
+  onDelete: (id: string) => void;
+  onSelect: (stock: Stock) => void;
+  selectedStock: Stock | null;
 }
 
 const SECTORS = [
@@ -58,61 +60,122 @@ const INDIAN_STOCKS = [
   { symbol: 'TITAN', name: 'Titan Company Ltd.' },
 ];
 
-export default function StockList({ stocks, onAdd, onEdit, onDelete, onSelect, selectedStock }: StockListProps) {
-  const [isAdding, setIsAdding] = useState(false);
-  const [editingStock, setEditingStock] = useState<Stock | null>(null);
-  const [newStock, setNewStock] = useState<Partial<Stock>>({
-    symbol: '',
-    name: '',
-    price: 0,
-    change: 0,
-    shares: 0,
-    sector: SECTORS[0],
-    type: STOCK_TYPES[0],
-  });
+// Sample stocks data
+const INITIAL_STOCKS: Stock[] = [
+  { id: '1', symbol: 'RELIANCE', name: 'Reliance Industries', price: 2456.75, change: 2.34, shares: 100, sector: 'Energy', type: 'Common Stock' },
+  { id: '2', symbol: 'TCS', name: 'Tata Consultancy Services', price: 3567.80, change: -1.23, shares: 50, sector: 'Technology', type: 'Common Stock' },
+  { id: '3', symbol: 'HDFCBANK', name: 'HDFC Bank', price: 1678.90, change: 0.45, shares: 150, sector: 'Finance', type: 'Common Stock' },
+  { id: '4', symbol: 'INFY', name: 'Infosys Limited', price: 1456.60, change: 1.56, shares: 75, sector: 'Technology', type: 'Common Stock' },
+  { id: '5', symbol: 'ICICIBANK', name: 'ICICI Bank', price: 945.30, change: -0.78, shares: 200, sector: 'Finance', type: 'Common Stock' }
+];
 
+const EMPTY_STOCK: Stock = {
+  id: '',
+  symbol: '',
+  name: '',
+  price: 0,
+  change: 0,
+  shares: 0,
+  sector: '',
+  type: 'Common Stock'
+};
+
+export default function StockList({ initialStocks, onStockUpdate, onAdd, onEdit, onDelete, onSelect, selectedStock }: StockListProps) {
+  const [stocks, setStocks] = useState<Stock[]>(initialStocks || INITIAL_STOCKS);
+  const [currentStock, setCurrentStock] = useState<Stock>(EMPTY_STOCK);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedStockId, setSelectedStockId] = useState<string>('');
+
+  useEffect(() => {
+    // Update parent component if callback is provided
+    if (onStockUpdate) {
+      onStockUpdate(stocks);
+    }
+  }, [stocks, onStockUpdate]);
+
+  // Handle selecting a stock when clicked
+  const handleSelect = (id: string) => {
+    setSelectedStockId(id === selectedStockId ? '' : id);
+  };
+
+  // Handle adding a new stock
   const handleAdd = () => {
-    setIsAdding(true);
-    setNewStock({
-      symbol: '',
-      name: '',
-      price: 0,
-      change: 0,
-      shares: 0,
-      sector: SECTORS[0],
-      type: STOCK_TYPES[0],
-    });
+    setCurrentStock({ ...EMPTY_STOCK, id: Date.now().toString() });
+    setIsEditing(false);
+    setIsModalOpen(true);
   };
 
+  // Handle editing an existing stock
   const handleEdit = (stock: Stock) => {
-    setEditingStock(stock);
-    setNewStock(stock);
+    setCurrentStock({...stock});
+    setIsEditing(true);
+    setIsModalOpen(true);
   };
 
-  const handleDelete = (symbol: string) => {
-    if (window.confirm('Are you sure you want to delete this stock?')) {
-      onDelete(symbol);
+  // Handle deleting a stock
+  const handleDelete = (id: string) => {
+    if (confirm('Are you sure you want to delete this stock?')) {
+      setStocks(prevStocks => prevStocks.filter(stock => stock.id !== id));
+      if (selectedStockId === id) {
+        setSelectedStockId('');
+      }
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Auto-fill stock name when symbol is selected
+  const handleSymbolChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const symbol = e.target.value;
+    const selectedStock = INDIAN_STOCKS.find(stock => stock.symbol === symbol);
+    
+    setCurrentStock(prev => ({
+      ...prev,
+      symbol,
+      name: selectedStock ? selectedStock.name : prev.name
+    }));
+  };
+
+  // Handle form submission for adding/editing stocks
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (editingStock) {
-      onEdit(newStock as Stock);
-      setEditingStock(null);
+    
+    if (isEditing) {
+      // Update existing stock
+      setStocks(prevStocks => 
+        prevStocks.map(stock => 
+          stock.id === currentStock.id ? currentStock : stock
+        )
+      );
     } else {
-      onAdd(newStock as Stock);
-      setIsAdding(false);
+      // Add new stock
+      setStocks(prevStocks => [...prevStocks, currentStock]);
     }
-    setNewStock({
-      symbol: '',
-      name: '',
-      price: 0,
-      change: 0,
-      shares: 0,
-      sector: SECTORS[0],
-      type: STOCK_TYPES[0],
-    });
+
+    setIsModalOpen(false);
+    setCurrentStock(EMPTY_STOCK);
+  };
+
+  // Handle input changes in the form
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    
+    // Special handling for symbol to auto-populate name
+    if (name === 'symbol') {
+      handleSymbolChange(e as React.ChangeEvent<HTMLSelectElement>);
+      return;
+    }
+    
+    setCurrentStock(prev => ({
+      ...prev,
+      [name]: ['price', 'change', 'shares'].includes(name) ? Number(value) : value
+    }));
+  };
+
+  // Handle canceling the form
+  const handleCancel = () => {
+    setIsModalOpen(false);
+    setCurrentStock(EMPTY_STOCK);
+    setIsEditing(false);
   };
 
   return (
@@ -157,24 +220,24 @@ export default function StockList({ stocks, onAdd, onEdit, onDelete, onSelect, s
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {stocks.map((stock) => (
               <motion.tr
-                key={stock.symbol}
+                key={stock.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                onClick={() => onSelect(stock.symbol)}
-                className={`cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
-                  selectedStock === stock.symbol ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                className={`border-b border-gray-700 cursor-pointer hover:bg-gray-700/50 ${
+                  selectedStock?.id === stock.id ? 'bg-gray-700/25' : ''
                 }`}
+                onClick={() => onSelect(stock)}
               >
                 <td className="py-3 px-4 text-sm font-medium text-gray-900 dark:text-white">{stock.symbol}</td>
                 <td className="py-3 px-4 text-sm text-gray-500 dark:text-gray-400">{stock.name}</td>
                 <td className="py-3 px-4 text-sm text-gray-500 dark:text-gray-400">{stock.sector}</td>
-                <td className="py-3 px-4 text-sm text-right text-gray-900 dark:text-white">{formatCurrency(stock.price)}</td>
-                <td className={`py-3 px-4 text-sm text-right ${stock.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {stock.change >= 0 ? '+' : ''}{stock.change}%
+                <td className="py-3 px-4 text-sm text-right text-gray-900 dark:text-white">{formatCurrency(Number(stock.price))}</td>
+                <td className={`py-3 px-4 text-sm text-right ${Number(stock.change) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {formatPercentage(Number(stock.change))}
                 </td>
                 <td className="py-3 px-4 text-sm text-right text-gray-900 dark:text-white">{stock.shares}</td>
                 <td className="py-3 px-4 text-sm text-right text-gray-900 dark:text-white">
-                  {formatCurrency(stock.price * stock.shares)}
+                  {formatCurrency(Number(stock.price) * Number(stock.shares))}
                 </td>
                 <td className="py-3 px-4 text-sm text-center">
                   <div className="flex justify-center space-x-2">
@@ -183,7 +246,7 @@ export default function StockList({ stocks, onAdd, onEdit, onDelete, onSelect, s
                       whileTap={{ scale: 0.9 }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleEdit(stock);
+                        onEdit(stock);
                       }}
                       className="p-1 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
                     >
@@ -194,7 +257,7 @@ export default function StockList({ stocks, onAdd, onEdit, onDelete, onSelect, s
                       whileTap={{ scale: 0.9 }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDelete(stock.symbol);
+                        onDelete(stock.id);
                       }}
                       className="p-1 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400"
                     >
@@ -204,36 +267,32 @@ export default function StockList({ stocks, onAdd, onEdit, onDelete, onSelect, s
                 </td>
               </motion.tr>
             ))}
+            {stocks.length === 0 && (
+              <tr>
+                <td colSpan={8} className="py-6 text-center text-gray-500 dark:text-gray-400">
+                  No stocks in your portfolio. Click "Add Stock" to get started.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
       <AnimatePresence>
-        {(isAdding || editingStock) && (
+        {isModalOpen && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
               className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-xl border border-gray-200 dark:border-gray-700"
             >
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {isAdding ? 'Add New Stock' : 'Edit Stock'}
+                  {isEditing ? 'Edit Stock' : 'Add New Stock'}
                 </h3>
                 <button
-                  onClick={() => {
-                    setIsAdding(false);
-                    setEditingStock(null);
-                    setNewStock({
-                      symbol: '',
-                      name: '',
-                      price: 0,
-                      change: 0,
-                      shares: 0,
-                      sector: '',
-                      type: '',
-                    });
-                  }}
+                  onClick={handleCancel}
                   className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 >
                   <XMarkIcon className="w-6 h-6" />
@@ -246,17 +305,12 @@ export default function StockList({ stocks, onAdd, onEdit, onDelete, onSelect, s
                     Symbol
                   </label>
                   <select
-                    value={newStock.symbol}
-                    onChange={(e) => {
-                      const selectedStock = INDIAN_STOCKS.find(stock => stock.symbol === e.target.value);
-                      setNewStock({
-                        ...newStock,
-                        symbol: e.target.value,
-                        name: selectedStock?.name || '',
-                      });
-                    }}
+                    value={currentStock.symbol}
+                    onChange={handleInputChange}
+                    name="symbol"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     required
+                    disabled={isEditing} // Disable changing symbol when editing
                   >
                     <option value="">Select a stock</option>
                     {INDIAN_STOCKS.map((stock) => (
@@ -273,11 +327,11 @@ export default function StockList({ stocks, onAdd, onEdit, onDelete, onSelect, s
                   </label>
                   <input
                     type="text"
-                    value={newStock.name}
-                    onChange={(e) => setNewStock({ ...newStock, name: e.target.value })}
+                    value={currentStock.name}
+                    onChange={handleInputChange}
+                    name="name"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     required
-                    readOnly
                   />
                 </div>
 
@@ -286,8 +340,9 @@ export default function StockList({ stocks, onAdd, onEdit, onDelete, onSelect, s
                     Sector
                   </label>
                   <select
-                    value={newStock.sector}
-                    onChange={(e) => setNewStock({ ...newStock, sector: e.target.value })}
+                    value={currentStock.sector}
+                    onChange={handleInputChange}
+                    name="sector"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     required
                   >
@@ -305,12 +360,12 @@ export default function StockList({ stocks, onAdd, onEdit, onDelete, onSelect, s
                     Type
                   </label>
                   <select
-                    value={newStock.type}
-                    onChange={(e) => setNewStock({ ...newStock, type: e.target.value })}
+                    value={currentStock.type}
+                    onChange={handleInputChange}
+                    name="type"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     required
                   >
-                    <option value="">Select a type</option>
                     {STOCK_TYPES.map((type) => (
                       <option key={type} value={type}>
                         {type}
@@ -325,8 +380,9 @@ export default function StockList({ stocks, onAdd, onEdit, onDelete, onSelect, s
                   </label>
                   <input
                     type="number"
-                    value={newStock.price}
-                    onChange={(e) => setNewStock({ ...newStock, price: Number(e.target.value) })}
+                    value={currentStock.price}
+                    onChange={handleInputChange}
+                    name="price"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     required
                     min="0"
@@ -340,8 +396,9 @@ export default function StockList({ stocks, onAdd, onEdit, onDelete, onSelect, s
                   </label>
                   <input
                     type="number"
-                    value={newStock.change}
-                    onChange={(e) => setNewStock({ ...newStock, change: Number(e.target.value) })}
+                    value={currentStock.change}
+                    onChange={handleInputChange}
+                    name="change"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     required
                     step="0.01"
@@ -354,8 +411,9 @@ export default function StockList({ stocks, onAdd, onEdit, onDelete, onSelect, s
                   </label>
                   <input
                     type="number"
-                    value={newStock.shares}
-                    onChange={(e) => setNewStock({ ...newStock, shares: Number(e.target.value) })}
+                    value={currentStock.shares}
+                    onChange={handleInputChange}
+                    name="shares"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     required
                     min="1"
@@ -365,19 +423,7 @@ export default function StockList({ stocks, onAdd, onEdit, onDelete, onSelect, s
                 <div className="flex justify-end space-x-3 mt-6">
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsAdding(false);
-                      setEditingStock(null);
-                      setNewStock({
-                        symbol: '',
-                        name: '',
-                        price: 0,
-                        change: 0,
-                        shares: 0,
-                        sector: '',
-                        type: '',
-                      });
-                    }}
+                    onClick={handleCancel}
                     className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                   >
                     Cancel
@@ -386,7 +432,7 @@ export default function StockList({ stocks, onAdd, onEdit, onDelete, onSelect, s
                     type="submit"
                     className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
                   >
-                    {isAdding ? 'Add Stock' : 'Save Changes'}
+                    {isEditing ? 'Save Changes' : 'Add Stock'}
                   </button>
                 </div>
               </form>

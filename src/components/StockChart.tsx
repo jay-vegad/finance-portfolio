@@ -156,9 +156,9 @@ export default function StockChart({ data, symbol }: StockChartProps) {
         padding: 12,
         displayColors: false,
         callbacks: {
-          label: (context) => {
-            const value = context.parsed.y;
-            return `Price: ${formatCurrency(value)}`;
+          label: (context: any) => {
+            const value = context.raw;
+            return `Price: ${formatCurrency(Number(value))}`;
           },
         },
       },
